@@ -8,7 +8,7 @@ var path = __dirname
 
 // Создаем сеть и учителя
 var layer_defs = [];
-layer_defs.push({type:'input', out_sx:24, out_sy:24, out_depth:1});
+layer_defs.push({type:'input', out_sx:28, out_sy:28, out_depth:1});
 layer_defs.push({type:'conv', sx:5, filters:8, stride:1, pad:2, activation:'relu'});
 layer_defs.push({type:'pool', sx:2, stride:2});
 layer_defs.push({type:'conv', sx:5, filters:16, stride:1, pad:2, activation:'relu'});
@@ -49,13 +49,13 @@ fs.readFile(path, function (err, trainContent) {
 
    var data = getMnistData(trainContent);
    //console.log(Array.isArray(data));
-   var trainData = data.slice(0, 1000);
+   var trainData = data.slice(0, 10000);
    var validationData = data.slice(1001, 1010);
 
    for (var i=0; i<trainData.length; i++) {
       var x = new convnetjs.Vol(28,28,1,0.0); // a 1x1x2 volume initialized to
       // 0's.
-      for (var j=0; j<trainData[i].input; j++) {
+      for (var j=0; j<trainData[i].input.length; j++) {
          x.w[j] = trainData[i].input[j]; // Vol.w is just a list, it holds
          // your data
       }
@@ -67,7 +67,7 @@ fs.readFile(path, function (err, trainContent) {
    //console.log(validationData.length);
    for (var k=0; k<validationData.length; k++) {
       x = new convnetjs.Vol(28,28,1,0.0);
-      for (var n=0; n<validationData[k].input; n++) {
+      for (var n=0; n<validationData[k].input.length; n++) {
          x.w[n] = validationData[k].input[n];
       }
       var realOut = validationData[k].output;
