@@ -1,5 +1,6 @@
 {
   "devDependencies": {
-    "convnetjs": "~0.3.0"
+    "request": "~2.70.0",
+    "natural": "~0.4.0"
   }
 }
