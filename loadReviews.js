@@ -8,20 +8,22 @@
 'use strict';
 
 var request = require('request'),
+   async = require('async'),
    fs = require('fs'),
    getReviewsURL = 'http://api.kinopoisk.cf/getReviews?filmID=',
-   badReviews = '&status=bad',
-   goodReviews = '&status=good',
+   badParam = '&status=bad',
+   goodParam = '&status=good',
    getSimilarURL = 'http://api.kinopoisk.cf/getSimilar?filmID=',
    filmStek = [],
-   pageParams = '&page=',
-   film = {reviews: []};
+   pageParam = '&page=',
+   fileName = 'data.json'
 
 /*
-* Парсит комментарии к фильмам, похожим на заданный. 
+* Парсит комментарии к фильмам, похожим на заданный.
+* @param {String, Number} id - идентификатор фильма.
 *
 */
-function parseFilpStek(id){
+function parseFilmStek(id){
    // Просим передать список похожих фильмов по нашему фильму
    request(getSimilarURL + id, function (error, response, body) {
       if (!error && response.statusCode == 200) {
@@ -30,61 +32,113 @@ function parseFilpStek(id){
 
          // Если по данному фильму есть похожие фильмы, то стянем их
          if(typeof responseObj.items !== 'undefined'){
-            var items = responseObj.items[0],
-               reviews = {good: [], bad: []}
-            filmStek = items.reduce(function (item) {
-               return item.id
+            var items = responseObj.items[0];
+            // Пушим в массив id первоначального фильма
+            items.push({id: id})
+            console.log('Всего фильмов ' + items.length)
+
+            var stekTask = items.map(function(item, index){
+               return getReviewsIdOnFilm.bind(null, item.id)
             })
-            console.log('Похожих фильмов ' + filmStek.length)
-            filmStek.push(id)
+
+            async.series(stekTask, function (err, results) {
+               results = JSON.stringify(results);
+               writeResult(fileName, results)
+            });
          }
       }
    });
-
 }
 
-parseFilpStek(361)
+parseFilmStek(46066)
+
 /*
-* Функция, собирающая одинаковое количество положительных и отрицательных отзывов по фильму. 
-*
+* Функция, собирающая одинаковое количество положительных и отрицательных отзывов по фильму.
+* @param {String, Number} filmId - идентификатор фильма.
+* @param {Function} onFinish - callback.
+*  В процессе работы вызывает onFinish, в которую передает объект:
+*  {Object} - объект с положительными и отрицательными массивами комментариев. Формат:
+*     {Array} - good
+*     {Array} - bad
+* @return
 */
-function getReviewsOnFilm(id){
-   request(url+id, function (error, response, body) {
+function getReviewsIdOnFilm(filmId, onFinish){
+   var filmUrl = getReviewsURL + filmId;
+   request(filmUrl, function (error, response, body) {
       if (!error && response.statusCode == 200) {
-         var firstResponseObject = JSON.parse(body);
+         var reviewsList = JSON.parse(body);
          // Если по данному фильму есть отзывы, то стянем все отзывы
-         if(typeof firstResponseObject.reviews !== 'undefined'){
-            var pagesCount = firstResponseObject.pagesCount;
-            var reviews = film.reviews
-            film.reviews = reviews.concat(firstResponseObject.reviews);
-            film.id = firstResponseObject.filmID
-            film.name = name
-            // writeResult()
-            // getReviewsPage(id, 2, pagesCount);
+         if(typeof reviewsList.reviews !== 'undefined'){
+            var goodReviewsCount = +reviewsList.reviewPositiveCount,
+               badReviewsCount = +reviewsList.reviewNegativeCount,
+               positiveUrl = filmUrl + goodParam,
+               negativeUrl = filmUrl + badParam,
+               reviewsCount = goodReviewsCount > badReviewsCount ? badReviewsCount: goodReviewsCount,
+               stekTask = [
+                  getPartReviewsIdOnUrl.bind(null, positiveUrl, 1, reviewsCount, new Array),
+                  getPartReviewsIdOnUrl.bind(null, negativeUrl, 1, reviewsCount, new Array)
+               ],
+               reviewsOnFilm = [];
+            async.series(stekTask, function (err, results) {onFinish(null, results)});
          }
       }
    });
 }
 
-function getReviewsPage(id, pageNumber, pagesCount) {
-   if (pageNumber <= pagesCount) {
-      var url = url + id + '&page=' + pageNumber;
-      request(url, function (error, response, body) {
-         if (!error && response.statusCode == 200) {
-            console.log('ok, status 200');
-            var responseObject = JSON.parse(body);
-            reviews = reviews.concat(responseObject.reviews);
-            getReviewsPage(id, pageNumber + 1, pagesCount)
+/*
+* Функция, собирающая count отзывов по url адресу.
+* @param {String} initUrl - адрес.
+* @param {Nubmer} page - номер страницы.
+* @param {Nubmer} count - количество отзывов, которые должны быть извлечены.
+* @param {Array} currentSet - текущий набор отзывов.
+* @param {Function} onFinish - callback.
+*  В процессе работы вызывает onFinish, в которую передает массив:
+*  {Array} - отзывы.
+* @return
+*/
+function getPartReviewsIdOnUrl(initUrl, page, count, currentSet, onFinish) {
+   var url = initUrl + pageParam + page;
+   request(url, function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+         var reviewsList = JSON.parse(body),
+            reviews = reviewsList.reviews;
+
+         if(typeof reviewsList.reviews !== 'undefined'){
+            console.log(reviewsList.reviews);
+            console.log(currentSet);
+            currentSet = currentSet.concat(reviews);
+            if (currentSet.length < count) {
+               getPartReviewsIdOnUrl(initUrl, page+1, count, currentSet, onFinish)
+            } else {
+               currentSet.length = count;
+               onFinish(null, currentSet)
+            }
          }
          else {
-            console.log('error')
+            onFinish(null, currentSet)
          }
-      });
-   } else {
-      console.log('all page load');
-      writeResult();
-   }
+      }
+   });
 }
+
+//function getReviewsPage(url, pageNumber, pagesCount, dataSet, onFinish) {
+//   if (pageNumber <= pagesCount) {
+//      var url = url + id + '&page=' + pageNumber;
+//      request(url, function (error, response, body) {
+//         if (!error && response.statusCode == 200) {
+//            console.log('ok, status 200');
+//            var responseObject = JSON.parse(body);
+//            reviews = reviews.concat(responseObject.reviews);
+//            getReviewsPage(url, pageNumber + 1, pagesCount, dataSet, onFinish)
+//         }
+//         else {
+//            console.log('error')
+//         }
+//      });
+//   } else {
+//      onFinish(dataSet)
+//   }
+//}
 
 function writeResult (fileName, data){
    fs.writeFile(fileName, data, function(err){
