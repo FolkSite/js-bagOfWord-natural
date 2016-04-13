@@ -1,4 +1,4 @@
-//http://api.kinopoisk.cf/getReviews?filmID=326&page=27
+//http://api.kinopoisk.cf/getReview?filmID=326&page=27
 //http://api.kinopoisk.cf/getReviews?filmID=93377&page=27
 // http://api.kinopoisk.cf/searchFilms?keyword=marvel
 // http://api.kinopoisk.cf/getReviews?filmID=93377&status=bad
@@ -16,7 +16,7 @@ var request = require('request'),
    getSimilarURL = 'http://api.kinopoisk.cf/getSimilar?filmID=',
    filmStek = [],
    pageParam = '&page=',
-   fileName = 'data.json'
+   fileName = 'data.json';
 
 /*
 * Парсит комментарии к фильмам, похожим на заданный.
@@ -34,14 +34,20 @@ function parseFilmStek(id){
          if(typeof responseObj.items !== 'undefined'){
             var items = responseObj.items[0];
             // Пушим в массив id первоначального фильма
-            items.push({id: id})
-            console.log('Всего фильмов ' + items.length)
+            items.push({id: id});
+            console.log('Всего фильмов ' + items.length);
 
             var stekTask = items.map(function(item, index){
                return getReviewsIdOnFilm.bind(null, item.id)
-            })
+            });
 
+            //TODO: закомментировать!
             async.series(stekTask, function (err, results) {
+               // Дополняет массив результатов данными о фильме
+               results = results.map(function(item, index){
+                  return {id: items[index].id, data: item}
+               });
+
                results = JSON.stringify(results);
                writeResult(fileName, results)
             });
@@ -50,7 +56,8 @@ function parseFilmStek(id){
    });
 }
 
-parseFilmStek(46066)
+parseFilmStek(46066);
+//parseFilmStek(361)
 
 /*
 * Функция, собирающая одинаковое количество положительных и отрицательных отзывов по фильму.
@@ -104,8 +111,6 @@ function getPartReviewsIdOnUrl(initUrl, page, count, currentSet, onFinish) {
             reviews = reviewsList.reviews;
 
          if(typeof reviewsList.reviews !== 'undefined'){
-            console.log(reviewsList.reviews);
-            console.log(currentSet);
             currentSet = currentSet.concat(reviews);
             if (currentSet.length < count) {
                getPartReviewsIdOnUrl(initUrl, page+1, count, currentSet, onFinish)
@@ -121,28 +126,29 @@ function getPartReviewsIdOnUrl(initUrl, page, count, currentSet, onFinish) {
    });
 }
 
-//function getReviewsPage(url, pageNumber, pagesCount, dataSet, onFinish) {
-//   if (pageNumber <= pagesCount) {
-//      var url = url + id + '&page=' + pageNumber;
-//      request(url, function (error, response, body) {
-//         if (!error && response.statusCode == 200) {
-//            console.log('ok, status 200');
-//            var responseObject = JSON.parse(body);
-//            reviews = reviews.concat(responseObject.reviews);
-//            getReviewsPage(url, pageNumber + 1, pagesCount, dataSet, onFinish)
-//         }
-//         else {
-//            console.log('error')
-//         }
-//      });
-//   } else {
-//      onFinish(dataSet)
-//   }
-//}
-
+/*
+ * Пишет необходимые данные в файл.
+ * @param {String} fileName - имя файла.
+ * @param {String} data - тело файла.
+ *
+ * @return
+ */
 function writeResult (fileName, data){
    fs.writeFile(fileName, data, function(err){
       if (err) throw err;
       console.log('It\'s saved!');
    });
 }
+
+function getRewiewsCountInFile (fileName){
+   fs.readFile(fileName, 'utf8', function (err, data) {
+      if (err) {
+         return console.log(err);
+      }
+      var data = JSON.parse(data);
+      console.log(data.reduce(function(sum, current) {
+         return sum + current[0].length;
+      }, 0))
+   });
+}
+//getRewiewsCountInFile('data.json');
