@@ -1,7 +1,8 @@
-//http://api.kinopoisk.cf/getReview?filmID=326&page=27
+//http://api.kinopoisk.cf/getReviews?filmID=326&page=27
 //http://api.kinopoisk.cf/getReviews?filmID=93377&page=27
 // http://api.kinopoisk.cf/searchFilms?keyword=marvel
 // http://api.kinopoisk.cf/getReviews?filmID=93377&status=bad
+// http://api.kinopoisk.cf/getReviewDetail?reviewID=
 // getFirstReviewsPageOnFilm(93377);
 // 361
 
@@ -11,19 +12,22 @@ var request = require('request'),
    async = require('async'),
    fs = require('fs'),
    getReviewsURL = 'http://api.kinopoisk.cf/getReviews?filmID=',
+   getReviewURL = 'http://api.kinopoisk.cf/getReviewDetail?reviewID=',
    badParam = '&status=bad',
    goodParam = '&status=good',
    getSimilarURL = 'http://api.kinopoisk.cf/getSimilar?filmID=',
-   filmStek = [],
+   filmStack = [],
    pageParam = '&page=',
-   fileName = 'data.json';
+   intermediateFileName = 'intermediate.json',
+   fileName = 'result.json';
+
 
 /*
 * Парсит комментарии к фильмам, похожим на заданный.
 * @param {String, Number} id - идентификатор фильма.
 *
 */
-function parseFilmStek(id){
+function parseFilmStack(id){
    // Просим передать список похожих фильмов по нашему фильму
    request(getSimilarURL + id, function (error, response, body) {
       if (!error && response.statusCode == 200) {
@@ -43,21 +47,66 @@ function parseFilmStek(id){
 
             //TODO: закомментировать!
             async.series(stekTask, function (err, results) {
+               //Клонируем результат в отдельный объект
+               var writeData = JSON.parse(JSON.stringify(results));
+
                // Дополняет массив результатов данными о фильме
-               results = results.map(function(item, index){
+               writeData = writeData.map(function(item, index){
                   return {id: items[index].id, data: item}
                });
 
-               results = JSON.stringify(results);
-               writeResult(fileName, results)
+               writeData = JSON.stringify(writeData);
+               writeResult(intermediateFileName, writeData);
+
+               //generateDataset(results)
             });
          }
       }
    });
 }
 
-parseFilmStek(46066);
-//parseFilmStek(361)
+// parseFilmStack(46066)
+
+function generateDataset(data){
+   // массив положительных и отрицательных наборов
+   var result = [],
+      simpleArrays = data.reduce(function (intermediate, item) {
+         intermediate[0] = intermediate[0].concat(item[0]);
+         intermediate[1] = intermediate[1].concat(item[1]);
+         return intermediate
+      }, [[],[]]),
+      //goodReviewsStackTask = [getReview.bind(null, simpleArrays[0][0].id)],
+      //
+      //badReviewsStackTask = [getReview.bind(null, simpleArrays[1][0].id)];
+      goodReviewsStackTask = simpleArrays[0].map(function (item, index) {
+         return getReview.bind(null, item.reviewID);
+      }),
+      badReviewsStackTask = simpleArrays[1].map(function (item, index) {
+         return getReview.bind(null, item.reviewID);
+      });
+   //console.log(simpleArrays[0][0]);
+   async.series(goodReviewsStackTask, function (err, results) {
+      result.push(results);
+
+      async.series(badReviewsStackTask, function (err, results) {
+         result.push(results);
+         result = JSON.stringify(result);
+         writeResult(fileName, result);
+      });
+   });
+}
+
+
+function getReview(id, callback){
+   var reviewUrl = getReviewURL + id;
+   request(reviewUrl, function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+         var review = JSON.parse(body);
+         console.log('status: 200');
+         callback(null, review)
+      }
+   });
+}
 
 /*
 * Функция, собирающая одинаковое количество положительных и отрицательных отзывов по фильму.
@@ -126,6 +175,7 @@ function getPartReviewsIdOnUrl(initUrl, page, count, currentSet, onFinish) {
    });
 }
 
+
 /*
  * Пишет необходимые данные в файл.
  * @param {String} fileName - имя файла.
@@ -152,3 +202,15 @@ function getRewiewsCountInFile (fileName){
    });
 }
 //getRewiewsCountInFile('data.json');
+
+function downloadFromTheIntermediateFile (fileName){
+   fs.readFile(fileName, 'utf8', function (err, data) {
+      if (err) {
+         return console.log(err);
+      }
+      var data = JSON.parse(data);
+      generateDataset(data)
+   });
+}
+
+downloadFromTheIntermediateFile('361.json');
