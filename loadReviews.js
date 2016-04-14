@@ -1,6 +1,7 @@
 //http://api.kinopoisk.cf/getReviews?filmID=326&page=27
 //http://api.kinopoisk.cf/getReviews?filmID=93377&page=27
 // http://api.kinopoisk.cf/searchFilms?keyword=marvel
+// http://api.kinopoisk.cf/searchFilms
 // http://api.kinopoisk.cf/getReviews?filmID=93377&status=bad
 // getFirstReviewsPageOnFilm(93377);
 // 361
@@ -14,6 +15,7 @@ var request = require('request'),
    badParam = '&status=bad',
    goodParam = '&status=good',
    getSimilarURL = 'http://api.kinopoisk.cf/getSimilar?filmID=',
+   getReviewDetail = 'http://api.kinopoisk.cf/getReviewDetail?reviewID='
    filmStek = [],
    pageParam = '&page=',
    fileName = 'data.json'
@@ -42,15 +44,37 @@ function parseFilmStek(id){
             })
 
             async.series(stekTask, function (err, results) {
-               results = JSON.stringify(results);
-               writeResult(fileName, results)
+               var shortResult = JSON.stringify(results);
+               writeResult(fileName, shortResult);
+               // loadFullReviews(simpleArray, writeResult);
             });
          }
       }
    });
 }
 
-parseFilmStek(46066)
+// parseFilmStek(46066)
+
+function generateDataset(data){
+   // массив положительных и отрицательных наборов
+   var simpleArrays = data.reduce(function (simpleArray, item) {
+      simpleArray[0].concat(item[0]);
+      simpleArray[1].concat(item[1]);
+      return simpleArray
+   }, [[],[]])
+
+   var goodReviewsStekTask = simpleArrays[0].map(function (item, index) {
+      return getReview.bind(null, item.id)
+   })
+
+   var badReviewsStekTask = = simpleArrays[0].map(function (item, index) {
+      return getReview.bind(null, item.id)
+   })
+   
+   var stekTask = items.map(function(item, index){
+      return getReviewsIdOnFilm.bind(null, item.id)
+   })
+}
 
 /*
 * Функция, собирающая одинаковое количество положительных и отрицательных отзывов по фильму.
@@ -121,24 +145,6 @@ function getPartReviewsIdOnUrl(initUrl, page, count, currentSet, onFinish) {
    });
 }
 
-//function getReviewsPage(url, pageNumber, pagesCount, dataSet, onFinish) {
-//   if (pageNumber <= pagesCount) {
-//      var url = url + id + '&page=' + pageNumber;
-//      request(url, function (error, response, body) {
-//         if (!error && response.statusCode == 200) {
-//            console.log('ok, status 200');
-//            var responseObject = JSON.parse(body);
-//            reviews = reviews.concat(responseObject.reviews);
-//            getReviewsPage(url, pageNumber + 1, pagesCount, dataSet, onFinish)
-//         }
-//         else {
-//            console.log('error')
-//         }
-//      });
-//   } else {
-//      onFinish(dataSet)
-//   }
-//}
 
 function writeResult (fileName, data){
    fs.writeFile(fileName, data, function(err){
