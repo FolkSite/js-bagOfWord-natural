@@ -1,11 +1,3 @@
-//http://api.kinopoisk.cf/getReviews?filmID=326&page=27
-//http://api.kinopoisk.cf/getReviews?filmID=93377&page=27
-// http://api.kinopoisk.cf/searchFilms?keyword=marvel
-// http://api.kinopoisk.cf/getReviews?filmID=93377&status=bad
-// http://api.kinopoisk.cf/getReviewDetail?reviewID=
-// getFirstReviewsPageOnFilm(93377);
-// 361
-
 'use strict';
 
 var request = require('request'),
@@ -18,9 +10,12 @@ var request = require('request'),
    getSimilarURL = 'http://api.kinopoisk.cf/getSimilar?filmID=',
    filmStack = [],
    pageParam = '&page=',
+   // Файл для незагруженными отзывами
    intermediateFileName = 'intermediate.json',
-   fileName = 'result.json';
-
+   // Файл для полных загруженных отзывов
+   fileName = 'result.json',
+   // Файл с массивами голых отзывов
+   cleanDataFileName = 'clean.json'
 
 /*
 * Парсит комментарии к фильмам, похожим на заданный.
@@ -65,8 +60,7 @@ function parseFilmStack(id){
    });
 }
 
-// parseFilmStack(46066)
-
+// TODO: Описать!
 function generateDataset(data){
    // массив положительных и отрицательных наборов
    var result = [],
@@ -96,7 +90,7 @@ function generateDataset(data){
    });
 }
 
-
+// TODO: Описать!
 function getReview(id, callback){
    var reviewUrl = getReviewURL + id;
    request(reviewUrl, function (error, response, body) {
@@ -175,7 +169,6 @@ function getPartReviewsIdOnUrl(initUrl, page, count, currentSet, onFinish) {
    });
 }
 
-
 /*
  * Пишет необходимые данные в файл.
  * @param {String} fileName - имя файла.
@@ -190,6 +183,7 @@ function writeResult (fileName, data){
    });
 }
 
+// TODO: Описать!
 function getRewiewsCountInFile (fileName){
    fs.readFile(fileName, 'utf8', function (err, data) {
       if (err) {
@@ -201,8 +195,8 @@ function getRewiewsCountInFile (fileName){
       }, 0))
    });
 }
-//getRewiewsCountInFile('data.json');
 
+// TODO: Описать!
 function downloadFromTheIntermediateFile (fileName){
    fs.readFile(fileName, 'utf8', function (err, data) {
       if (err) {
@@ -213,4 +207,4 @@ function downloadFromTheIntermediateFile (fileName){
    });
 }
 
-downloadFromTheIntermediateFile('361.json');
+// downloadFromTheIntermediateFile('361.json');

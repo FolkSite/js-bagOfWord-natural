@@ -2,6 +2,9 @@
   "devDependencies": {
     "request": "~2.70.0",
     "natural": "~0.4.0",
-    "async": "2.0.0-rc.3"
+    "async": "2.0.0-rc.3",
+    "mimir": "0.0.1",
+    "svm": "0.1.1",
+    "limdu": "0.8.0"
   }
 }
