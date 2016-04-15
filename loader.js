@@ -8,14 +8,13 @@ var request = require('request'),
    badParam = '&status=bad',
    goodParam = '&status=good',
    getSimilarURL = 'http://api.kinopoisk.cf/getSimilar?filmID=',
-   filmStack = [],
    pageParam = '&page=',
    // Файл для незагруженными отзывами
    intermediateFileName = 'intermediate.json',
    // Файл для полных загруженных отзывов
    fileName = 'result.json',
    // Файл с массивами голых отзывов
-   cleanDataFileName = 'clean.json'
+   cleanDataFileName = 'clean.json';
 
 /*
 * Парсит комментарии к фильмам, похожим на заданный.
