@@ -4,7 +4,6 @@
 /data
 /old/cnjs_example/data.json
 /old/cnjs_example/test.json
-
 *.iml
 
 ## Directory-based project format:

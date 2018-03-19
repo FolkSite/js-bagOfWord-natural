@@ -1,6 +1,3 @@
-/**
- * Created by Дмитрий on 03.03.2016.
- */
 var convnetjs = require("convnetjs");
 
 var layer_defs = [];

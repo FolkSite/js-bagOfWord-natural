@@ -1,7 +1,3 @@
-/**
- * Created by dmitry on 15.04.16.
- */
-
 var fs = require('fs'),
    fileName = 'gold.json',
    editFileName = 'silver.json';

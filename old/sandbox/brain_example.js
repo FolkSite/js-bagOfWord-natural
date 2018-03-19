@@ -1,6 +1,3 @@
-/**
- * Created by Дмитрий on 23.11.2015.
- */
 var brain = require('brain');
 var net = new brain.NeuralNetwork();
 
